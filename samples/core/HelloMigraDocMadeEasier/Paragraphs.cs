@@ -75,7 +75,7 @@ namespace HelloMigraDoc
             paragraph.AddText(".");
             paragraph.AddLineBreak();
             paragraph.AddText("You can set the ");
-            paragraph.AddFormattedText(new MezFormattedText("size").Size(15));
+            paragraph.AddFormattedText(new MezFormattedText("size").Font(15));
             paragraph.AddText(", the ");
             paragraph.AddFormattedText(new MezFormattedText("color").Color(Colors.Firebrick));
             paragraph.AddText(", the ");

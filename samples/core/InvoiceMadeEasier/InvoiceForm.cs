@@ -147,10 +147,12 @@ namespace Invoice
             new MezParagraph(_addressFrame.AddParagraph("PowerBooks Inc · Sample Street 42 · 56789 Cologne"))
                 .Font(7).Bold(true).SpaceAfter(3);
 
+            _document.AddParagraph().LineSpacingRule(LineSpacingRule.Exactly).LineSpacing("5.25cm");
+
             // Add the print date field.
             _document.AddParagraph()
             // We use SpaceBefore to move the first text line below the address field.
-                .SpaceBefore("5.25cm")
+                .SpaceBefore(0)
                 .Style("Reference")
                 .AddFormattedText(new MezFormattedText("INVOICE").Bold(true))
                 .AddTab()
@@ -186,32 +188,40 @@ namespace Invoice
             //column.Format.Alignment = ParagraphAlignment.Right;
 
             // Create the header of the table.
-            var row = _document.AddRow(new MezParagraph("Item").Bold(true).Alignment(ParagraphAlignment.Left),
-                    new MezParagraph("Title and Author").Alignment(ParagraphAlignment.Left),
+            var row = _document.AddRow(new MezParagraph("Item")/*.Bold(true).Alignment(ParagraphAlignment.Left)*/,
+                    new MezParagraph("Title and Author")/*.Alignment(ParagraphAlignment.Left)*/,
                     null, null, null,
-                    new MezParagraph("Extended Price").Alignment(ParagraphAlignment.Left))
+                    new MezParagraph("Extended Price")/*.Alignment(ParagraphAlignment.Left)*/)
                 .Heading(true)
                 .Alignment(ParagraphAlignment.Center)
                 .Bold(true)
                 .ShadingColor(TableBlue);
 
             // Special settings not yet covered by MEZ.
+            row.Row.Cells[0].Format.Font.Bold = false;
+            row.Row.Cells[0].Format.Alignment = ParagraphAlignment.Left;
             row.Row.Cells[0].VerticalAlignment = VerticalAlignment.Bottom;
             row.Row.Cells[0].MergeDown = 1;
+            row.Row.Cells[1].Format.Alignment = ParagraphAlignment.Left;
             row.Row.Cells[1].MergeRight = 3;
+            row.Row.Cells[5].Format.Alignment = ParagraphAlignment.Left;
             row.Row.Cells[5].VerticalAlignment = VerticalAlignment.Bottom;
             row.Row.Cells[5].MergeDown = 1;
 
             row = _document.AddRow(null,
-                    new MezParagraph("Quantity").Alignment(ParagraphAlignment.Left),
-                    new MezParagraph("Unit Price").Alignment(ParagraphAlignment.Left),
-                    new MezParagraph("Discount (%)").Alignment(ParagraphAlignment.Left),
-                    new MezParagraph("Taxable").Alignment(ParagraphAlignment.Left),
+                    new MezParagraph("Quantity")/*.Alignment(ParagraphAlignment.Left)*/,
+                    new MezParagraph("Unit Price")/*.Alignment(ParagraphAlignment.Left)*/,
+                    new MezParagraph("Discount (%)")/*.Alignment(ParagraphAlignment.Left)*/,
+                    new MezParagraph("Taxable")/*.Alignment(ParagraphAlignment.Left)*/,
                     null)
                 .Heading(true)
                 .Alignment(ParagraphAlignment.Center)
                 .Bold(true)
                 .ShadingColor(TableBlue);
+            row.Row.Cells[1].Format.Alignment = ParagraphAlignment.Left;
+            row.Row.Cells[2].Format.Alignment = ParagraphAlignment.Left;
+            row.Row.Cells[3].Format.Alignment = ParagraphAlignment.Left;
+            row.Row.Cells[4].Format.Alignment = ParagraphAlignment.Left;
 
             _table.Table.SetEdge(0, 0, 6, 2, Edge.Box, BorderStyle.Single, 0.75, Color.Empty);
         }
@@ -221,6 +231,8 @@ namespace Invoice
         /// </summary>
         void FillContent()
         {
+            const double vat = 0.07;
+
             // Fill the address in the address text frame.
             var item = SelectItem("/invoice/to");
             var paragraph = _addressFrame.AddParagraph();
@@ -240,98 +252,126 @@ namespace Invoice
                 var price = GetValueAsDouble(item, "price");
                 var discount = GetValueAsDouble(item, "discount");
 
-                // Each item fills two rows.
-                var row1 = _document.AddRow();
-                var row2 = _document.AddRow();
-                row1.TopPadding = 1.5;
-                row1.Cells[0].Shading.Color = TableGray;
-                row1.Cells[0].VerticalAlignment = VerticalAlignment.Center;
-                row1.Cells[0].MergeDown = 1;
-                row1.Cells[1].Format.Alignment = ParagraphAlignment.Left;
-                row1.Cells[1].MergeRight = 3;
-                row1.Cells[5].Shading.Color = TableGray;
-                row1.Cells[5].MergeDown = 1;
-
-                row1.Cells[0].AddParagraph(GetValue(item, "itemNumber"));
-                paragraph = row1.Cells[1].AddParagraph();
-                var formattedText = new FormattedText() { Style = "Title" };
-                formattedText.AddText(GetValue(item, "title"));
-                paragraph.Add(formattedText);
-                paragraph.AddFormattedText(" by ", TextFormat.Italic);
-                paragraph.AddText(GetValue(item, "author"));
-
-                row2.Cells[1].AddParagraph(GetValue(item, "quantity"));
-                row2.Cells[2].AddParagraph(price.ToString("0.00") + " €");
-                if (discount > 0)
-                    row2.Cells[3].AddParagraph(discount.ToString("0") + '%');
-                row2.Cells[4].AddParagraph();
-                row2.Cells[5].AddParagraph(price.ToString("0.00"));
                 var extendedPrice = quantity * price;
                 extendedPrice = extendedPrice * (100 - discount) / 100;
-                row1.Cells[5].AddParagraph(extendedPrice.ToString("0.00") + " €");
-                row1.Cells[5].VerticalAlignment = VerticalAlignment.Bottom;
+
+                // Each item fills two rows.
+                var row1 = _document.AddRow(new MezParagraph(GetValue(item, "itemNumber")),
+                    // $THHO TODO Simplify this.
+                    new MezParagraph()
+                        .AddFormattedText(new MezFormattedText(GetValue(item, "title")).Style("Title"))
+                        .AddFormattedText(new MezFormattedText(" by ").Italic(true))
+                        .AddText(GetValue(item, "author")),
+                    null, null, null,
+                    new MezParagraph(extendedPrice.ToString("0.00") + " €"));
+                var row2 = _document.AddRow(null,
+                    new MezParagraph(GetValue(item, "quantity")),
+                    new MezParagraph(price.ToString("0.00") + " €"),
+                    new MezParagraph(discount > 0 ? (discount.ToString("0") + '%') : ""),
+                    null,
+                    new MezParagraph(price.ToString("0.00"))); // Hidden by MergeDown.
+                // $THHO TODO Simplify this?
+                row1.Row.TopPadding = 1.5;
+                row1.Row.Cells[0].Shading.Color = TableGray;
+                row1.Row.Cells[0].VerticalAlignment = VerticalAlignment.Center;
+                row1.Row.Cells[0].MergeDown = 1;
+                row1.Row.Cells[1].Format.Alignment = ParagraphAlignment.Left;
+                row1.Row.Cells[1].MergeRight = 3;
+                row1.Row.Cells[5].Shading.Color = TableGray;
+                row1.Row.Cells[5].MergeDown = 1;
+
+                //row1.Cells[0].AddParagraph(GetValue(item, "itemNumber"));
+                //paragraph = row1.Cells[1].AddParagraph();
+                //var formattedText = new FormattedText() { Style = "Title" };
+                //formattedText.AddText(GetValue(item, "title"));
+                //paragraph.Add(formattedText);
+                //paragraph.AddFormattedText(" by ", TextFormat.Italic);
+                //paragraph.AddText(GetValue(item, "author"));
+
+                //row2.Cells[1].AddParagraph(GetValue(item, "quantity"));
+                //row2.Cells[2].AddParagraph(price.ToString("0.00") + " €");
+                //if (discount > 0)
+                //    row2.Cells[3].AddParagraph(discount.ToString("0") + '%');
+                //row2.Cells[4].AddParagraph();
+                //row2.Cells[5].AddParagraph(price.ToString("0.00"));
+                //row1.Cells[5].AddParagraph(extendedPrice.ToString("0.00") + " €");
+                row1.Row.Cells[5].VerticalAlignment = VerticalAlignment.Bottom;
                 totalExtendedPrice += extendedPrice;
 
-                _table.SetEdge(0, _table.Rows.Count - 2, 6, 2, Edge.Box, BorderStyle.Single, 0.75);
+                _table.Table.SetEdge(0, _table.Table.Rows.Count - 2, 6, 2, Edge.Box, BorderStyle.Single, 0.75);
             }
 
             // Add an invisible row as a space line to the table.
-            var row = _document.AddRow(null);
+            var row = _document.AddRow();
             row.Row.Borders.Visible = false;
 
             // Add the total price row.
-            row = _table.AddRow();
-            row.Cells[0].Borders.Visible = false;
-            row.Cells[0].AddParagraph("Total Price");
-            row.Cells[0].Format.Font.Bold = true;
-            row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
-            row.Cells[0].MergeRight = 4;
-            row.Cells[5].AddParagraph(totalExtendedPrice.ToString("0.00") + " €");
-            row.Cells[5].Format.Font.Name = "Segoe UI";
+            row = _document.AddRow(new MezParagraph("Total Price")/*.Bold(true).Alignment(ParagraphAlignment.Right)*/,
+                null, null, null, null,
+                new MezParagraph(totalExtendedPrice.ToString("0.00") + " €")/*.Font("Segoe UI")*/);
+            row.Row.Cells[0].Borders.Visible = false;
+            //row.Cells[0].AddParagraph("Total Price");
+            row.Row.Cells[0].Format.Font.Bold = true;
+            row.Row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
+            row.Row.Cells[0].MergeRight = 4;
+            //row.Cells[5].AddParagraph(totalExtendedPrice.ToString("0.00") + " €");
+            row.Row.Cells[5].Format.Font.Name = "Segoe UI";
 
             // Add the VAT row.
-            row = _table.AddRow();
-            row.Cells[0].Borders.Visible = false;
-            row.Cells[0].AddParagraph("VAT (7%)");
-            row.Cells[0].Format.Font.Bold = true;
-            row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
-            row.Cells[0].MergeRight = 4;
-            row.Cells[5].AddParagraph((0.07 * totalExtendedPrice).ToString("0.00") + " €");
+            row = _document.AddRow(new MezParagraph("VAT (" + (vat * 100) + "%)")/*.Bold(true).Alignment(ParagraphAlignment.Right)*/,
+                null, null, null, null,
+                new MezParagraph((vat * totalExtendedPrice).ToString("0.00") + " €"));
+            row.Row.Cells[0].Borders.Visible = false;
+            //row.Cells[0].AddParagraph("VAT (7%)");
+            row.Row.Cells[0].Format.Font.Bold = true;
+            row.Row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
+            row.Row.Cells[0].MergeRight = 4;
+            //row.Cells[5].AddParagraph((0.07 * totalExtendedPrice).ToString("0.00") + " €");
 
             // Add the additional fee row.
-            row = _table.AddRow();
-            row.Cells[0].Borders.Visible = false;
-            row.Cells[0].AddParagraph("Shipping and Handling");
-            row.Cells[5].AddParagraph(0.ToString("0.00") + " €");
-            row.Cells[0].Format.Font.Bold = true;
-            row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
-            row.Cells[0].MergeRight = 4;
+            row = _document.AddRow(new MezParagraph("Shipping and Handling")/*.Bold(true).Alignment(ParagraphAlignment.Right)*/,
+                null, null, null, null,
+                new MezParagraph(0.ToString("0.00") + " €"));
+            row.Row.Cells[0].Borders.Visible = false;
+            //row.Cells[0].AddParagraph("Shipping and Handling");
+            //row.Cells[5].AddParagraph(0.ToString("0.00") + " €");
+            row.Row.Cells[0].Format.Font.Bold = true;
+            row.Row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
+            row.Row.Cells[0].MergeRight = 4;
 
             // Add the total due row.
-            row = _table.AddRow();
-            row.Cells[0].AddParagraph("Total Due");
-            row.Cells[0].Borders.Visible = false;
-            row.Cells[0].Format.Font.Bold = true;
-            row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
-            row.Cells[0].MergeRight = 4;
-            totalExtendedPrice += 0.19 * totalExtendedPrice;
-            row.Cells[5].AddParagraph(totalExtendedPrice.ToString("0.00") + " €");
-            row.Cells[5].Format.Font.Name = "Segoe UI";
-            row.Cells[5].Format.Font.Bold = true;
+            totalExtendedPrice += vat * totalExtendedPrice;
+            row = _document.AddRow(new MezParagraph("Total Due")/*.Bold(true).Alignment(ParagraphAlignment.Right)*/,
+                null, null, null, null,
+                new MezParagraph(totalExtendedPrice.ToString("0.00") + " €")/*.Bold(true).Font("Segoe UI")*/);
+            //row.Cells[0].AddParagraph("Total Due");
+            row.Row.Cells[0].Borders.Visible = false;
+            row.Row.Cells[0].Format.Font.Bold = true;
+            row.Row.Cells[0].Format.Alignment = ParagraphAlignment.Right;
+            row.Row.Cells[0].MergeRight = 4;
+            //row.Cells[5].AddParagraph(totalExtendedPrice.ToString("0.00") + " €");
+            row.Row.Cells[5].Format.Font.Name = "Segoe UI";
+            row.Row.Cells[5].Format.Font.Bold = true;
 
             // Set the borders of the specified cell range.
-            _table.SetEdge(5, _table.Rows.Count - 4, 1, 4, Edge.Box, BorderStyle.Single, 0.75);
+            _table.Table.SetEdge(5, _table.Table.Rows.Count - 4, 1, 4, Edge.Box, BorderStyle.Single, 0.75);
 
             // Add the notes paragraph.
-            paragraph = _document.LastSection.AddParagraph();
-            paragraph.Format.Alignment = ParagraphAlignment.Center;
-            paragraph.Format.SpaceBefore = "1cm";
-            paragraph.Format.Borders.Width = 0.75;
-            paragraph.Format.Borders.Distance = 3;
-            paragraph.Format.Borders.Color = TableBorder;
-            paragraph.Format.Shading.Color = TableGray;
             item = SelectItem("/invoice");
-            paragraph.AddText(GetValue(item, "notes"));
+            //paragraph.AddText(GetValue(item, "notes"));
+            /*var paragraph2 =*/ _document.AddParagraph(GetValue(item, "notes"))
+                .Alignment(ParagraphAlignment.Center)
+                .SpaceBefore("1cm")
+                .Borders(0.75)
+                .BorderDistance(3)
+                .Borders(TableBorder)
+                .ShadingColor(TableGray);
+            //paragraph2.Format.Alignment = ParagraphAlignment.Center;
+            //paragraph2.Format.SpaceBefore = "1cm";
+            //paragraph2.Format.Borders.Width = 0.75;
+            //paragraph2.Format.Borders.Distance = 3;
+            //paragraph2.Format.Borders.Color = TableBorder;
+            //paragraph2.Format.Shading.Color = TableGray;
         }
 
         /// <summary>

@@ -342,6 +342,7 @@ namespace MigraDocMadeEZ
 
         // TODO Column alignment.
         // TODO Helpers to format tables (colours, borders, ...).
+        // $THHO TODO Description of column specifications.
 
         public MezTable AddTable(string columns)
         {
@@ -356,7 +357,7 @@ namespace MigraDocMadeEZ
             {
                 var elements = item.Split(';');
                 // TODO Column alignment.
-                if (elements.Length != 1)
+                if (elements.Length > 3)
                     throw new ArgumentException("AddTable: Invalid column specification \"" + item + "\": wrong item count.");
                 var firstElement = elements[0];
                 MezColumn col;
@@ -462,6 +463,11 @@ namespace MigraDocMadeEZ
             return new MezTable(result);
         }
 
+        public MezRow AddRow()
+        {
+            return AddRow((MezParagraph) null);
+        }
+
         public MezRow AddRow(params string[] columns)
         {
             var table = Section.LastTable;
@@ -483,6 +489,9 @@ namespace MigraDocMadeEZ
             int end = Math.Min(columns.Length, table.Columns.Count);
             for (int i = 0; i < end; ++i)
             {
+                if (columns[i] == null)
+                    continue;
+
                 var str = columns[i] as string;
                 if (str != null)
                 {
@@ -918,7 +927,8 @@ namespace MigraDocMadeEZ
 
         public MezRow ShadingColor(Color color)
         {
-            Row.Format.Shading.Color = color;
+            //Row.Format.Shading.Color = color;
+            Row.Shading.Color = color;
             return this;
         }
     }
@@ -1036,7 +1046,7 @@ namespace MigraDocMadeEZ
 
         public static implicit operator Paragraph(MezParagraph para)
         {
-            return para.Paragraph;
+            return para?.Paragraph;
         }
 
         public MezParagraph Style(string style)
@@ -1254,6 +1264,18 @@ namespace MigraDocMadeEZ
             Paragraph.AddDateField(date);
             return this;
         }
+
+        public MezParagraph LineSpacingRule(LineSpacingRule rule)
+        {
+            Paragraph.Format.LineSpacingRule = rule;
+            return this;
+        }
+
+        public MezParagraph LineSpacing(Unit spacing)
+        {
+            Paragraph.Format.LineSpacing = spacing;
+            return this;
+        }
     }
 
     public class MezFormattedText
@@ -1313,6 +1335,12 @@ namespace MigraDocMadeEZ
         public MezFormattedText Color(Color color)
         {
             Ft.Color = color;
+            return this;
+        }
+
+        public MezFormattedText Style(string style)
+        {
+            Ft.Style = style;
             return this;
         }
 
