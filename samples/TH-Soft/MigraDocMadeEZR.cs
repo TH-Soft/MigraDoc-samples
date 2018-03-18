@@ -152,8 +152,8 @@ namespace MigraDocMadeEZ
 
         public MezParagraph AddParagraph(string text)
         {
-            return new MezParagraph(text != null ? 
-                Section.AddParagraph(text) : 
+            return new MezParagraph(text != null ?
+                Section.AddParagraph(text) :
                 Section.AddParagraph());
         }
 
@@ -903,6 +903,24 @@ namespace MigraDocMadeEZ
             Row.Style = style;
             return this;
         }
+
+        public MezRow Alignment(ParagraphAlignment alignment)
+        {
+            Row.Format.Alignment = alignment;
+            return this;
+        }
+
+        public MezRow Bold(bool b)
+        {
+            Row.Format.Font.Bold = b;
+            return this;
+        }
+
+        public MezRow ShadingColor(Color color)
+        {
+            Row.Format.Shading.Color = color;
+            return this;
+        }
     }
 
     public class MezTable
@@ -956,6 +974,42 @@ namespace MigraDocMadeEZ
         public MezTable LeftIndent(Unit leftIndent)
         {
             Table.Rows.LeftIndent = leftIndent;
+            return this;
+        }
+
+        public MezTable Style(string style)
+        {
+            Table.Style = style;
+            return this;
+        }
+
+        public MezTable BorderColor(Color color)
+        {
+            Table.Borders.Color = color;
+            return this;
+        }
+
+        public MezTable BorderLeft(Unit width)
+        {
+            Table.Borders.Left.Width = width;
+            return this;
+        }
+
+        public MezTable BorderRight(Unit width)
+        {
+            Table.Borders.Right.Width = width;
+            return this;
+        }
+
+        public MezTable BorderTop(Unit width)
+        {
+            Table.Borders.Top.Width = width;
+            return this;
+        }
+
+        public MezTable BorderBottom(Unit width)
+        {
+            Table.Borders.Bottom.Width = width;
             return this;
         }
     }
@@ -1168,6 +1222,38 @@ namespace MigraDocMadeEZ
             Paragraph.Format.Font.Color = color;
             return this;
         }
+
+        public MezParagraph Font(Unit fontSize)
+        {
+            Paragraph.Format.Font.Size = fontSize;
+            return this;
+        }
+
+        public MezParagraph Font(string fontName, Unit? fontSize = null)
+        {
+            Paragraph.Format.Font.Name = fontName;
+            if (fontSize != null)
+                Paragraph.Format.Font.Size = fontSize.Value;
+            return this;
+        }
+
+        public MezParagraph SpaceAfter(Unit space)
+        {
+            Paragraph.Format.SpaceAfter = space;
+            return this;
+        }
+
+        public MezParagraph SpaceBefore(Unit space)
+        {
+            Paragraph.Format.SpaceBefore = space;
+            return this;
+        }
+
+        public MezParagraph AddDateField(string date)
+        {
+            Paragraph.AddDateField(date);
+            return this;
+        }
     }
 
     public class MezFormattedText
@@ -1250,7 +1336,7 @@ namespace MigraDocMadeEZ
             return this;
         }
 
-        public MezFormattedText Size(Unit fontsize)
+        public MezFormattedText Font(Unit fontsize)
         {
             Ft.Font.Size = fontsize;
             return this;
@@ -1329,6 +1415,42 @@ namespace MigraDocMadeEZ
         public MezImage Height(Unit height)
         {
             Image.Height = height;
+            return this;
+        }
+
+        public MezImage LockAspectRatio(bool lockAspectRatio)
+        {
+            Image.LockAspectRatio = lockAspectRatio;
+            return this;
+        }
+
+        public MezImage RelativeVertical(RelativeVertical relativeVertical)
+        {
+            Image.RelativeVertical = relativeVertical;
+            return this;
+        }
+
+        public MezImage RelativeHorizontal(RelativeHorizontal relativeHorizontal)
+        {
+            Image.RelativeHorizontal = relativeHorizontal;
+            return this;
+        }
+
+        public MezImage Top(ShapePosition top)
+        {
+            Image.Top = top;
+            return this;
+        }
+
+        public MezImage Left(ShapePosition left)
+        {
+            Image.Left = left;
+            return this;
+        }
+
+        public MezImage WrapFormatStyle(WrapStyle style)
+        {
+            Image.WrapFormat.Style = style;
             return this;
         }
     }

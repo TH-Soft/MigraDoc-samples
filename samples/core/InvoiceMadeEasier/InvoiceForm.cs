@@ -6,6 +6,7 @@ using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.DocumentObjectModel.Shapes;
 using System.Diagnostics;
+using MigraDocMadeEZ;
 
 namespace Invoice
 {
@@ -17,7 +18,7 @@ namespace Invoice
         /// <summary>
         /// The MigraDoc document that represents the invoice.
         /// </summary>
-        Document _document;
+        MigraDocMadeEZR _document;
 
         /// <summary>
         /// The root navigator for the XML document.
@@ -32,7 +33,7 @@ namespace Invoice
         /// <summary>
         /// The table of the MigraDoc document that contains the invoice items.
         /// </summary>
-        Table _table;
+        MezTable _table;
 
         /// <summary>
         /// Initializes a new instance of the class InvoiceForm and opens the specified XML document.
@@ -48,13 +49,13 @@ namespace Invoice
         /// <summary>
         /// Creates the invoice document.
         /// </summary>
-        public Document CreateDocument()
+        public MigraDocMadeEZR CreateDocument()
         {
             // Create a new MigraDoc document.
-            _document = new Document();
-            _document.Info.Title = "A sample invoice";
-            _document.Info.Subject = "Demonstrates how to create an invoice.";
-            _document.Info.Author = "Stefan Lange";
+            _document = new MigraDocMadeEZR();
+            _document.InfoTitle = "A sample invoice";
+            _document.InfoSubject = "Demonstrates how to create an invoice.";
+            _document.InfoAuthor = "Stefan Lange";
 
             DefineStyles();
 
@@ -70,34 +71,25 @@ namespace Invoice
         /// </summary>
         void DefineStyles()
         {
-            // Get the predefined style Normal.
-            var style = _document.Styles["Normal"];
+            // Modify the predefined style Normal.
             // Because all styles are derived from Normal, the next line changes the 
             // font of the whole document. Or, more exactly, it changes the font of
             // all styles and paragraphs that do not redefine the font.
-            style.Font.Name = "Segoe UI";
+            var style = _document.Style(StyleNames.Normal).Font("Segoe UI");
 
-            style = _document.Styles[StyleNames.Header];
-            style.ParagraphFormat.AddTabStop("16cm", TabAlignment.Right);
+            _document.Style(StyleNames.Header).SetTabStop("16cm", TabAlignment.Right);
 
-            style = _document.Styles[StyleNames.Footer];
-            style.ParagraphFormat.AddTabStop("8cm", TabAlignment.Center);
+            _document.Style(StyleNames.Footer).SetTabStop("8cm", TabAlignment.Center);
 
             // Create a new style called Table based on style Normal.
-            style = _document.Styles.AddStyle("Table", "Normal");
-            style.Font.Name = "Segoe UI Semilight";
-            style.Font.Size = 9;
+            _document.AddStyle("Table", StyleNames.Normal).Font("Segoe UI Semilight", 9);
 
             // Create a new style called Title based on style Normal.
-            style = _document.Styles.AddStyle("Title", "Normal");
-            style.Font.Name = "Segoe UI Semibold";
-            style.Font.Size = 9;
+            _document.AddStyle("Title", StyleNames.Normal).Font("Segoe UI Semibold", 9);
 
             // Create a new style called Reference based on style Normal.
-            style = _document.Styles.AddStyle("Reference", "Normal");
-            style.ParagraphFormat.SpaceBefore = "5mm";
-            style.ParagraphFormat.SpaceAfter = "5mm";
-            style.ParagraphFormat.TabStops.AddTabStop("16cm", TabAlignment.Right);
+            _document.AddStyle("Reference", StyleNames.Normal).SpaceBefore("5mm").SpaceAfter("5mm")
+                .SetTabStop("16cm", TabAlignment.Right);
         }
 
         /// <summary>
@@ -105,12 +97,9 @@ namespace Invoice
         /// </summary>
         void CreatePage()
         {
-            // Each MigraDoc document needs at least one section.
-            var section = _document.AddSection();
-
+            var section = _document.Section;
             // Define the page setup. We use an image in the header, therefore the
             // default top margin is too small for our invoice.
-            section.PageSetup = _document.DefaultPageSetup.Clone();
             // We increase the TopMargin to prevent the document body from overlapping the page header.
             // We have an image of 3.5 cm height in the header.
             // The default position for the header is 1.25 cm.
@@ -119,6 +108,17 @@ namespace Invoice
             section.PageSetup.TopMargin = "5.25cm";
 
             // Put the logo in the header.
+#if true
+            var image = new MezImage("../../../../assets/images/MigraDoc.png")
+                .Height("3.5cm")
+                .LockAspectRatio(true)
+                .RelativeVertical(RelativeVertical.Line)
+                .RelativeHorizontal(RelativeHorizontal.Margin)
+                .Top(ShapePosition.Top)
+                .Left(ShapePosition.Right)
+                .WrapFormatStyle(WrapStyle.Through);
+            section.Headers.Primary.Add(image);
+#else
             var image = section.Headers.Primary.AddImage("../../../../assets/images/MigraDoc.png");
             image.Height = "3.5cm";
             image.LockAspectRatio = true;
@@ -127,12 +127,12 @@ namespace Invoice
             image.Top = ShapePosition.Top;
             image.Left = ShapePosition.Right;
             image.WrapFormat.Style = WrapStyle.Through;
+#endif
 
             // Create the footer.
-            var paragraph = section.Footers.Primary.AddParagraph();
-            paragraph.AddText("PowerBooks Inc ● Sample Street 42 ● 56789 Cologne ● Germany");
-            paragraph.Format.Font.Size = 9;
-            paragraph.Format.Alignment = ParagraphAlignment.Center;
+            var paragraph2 = new MezParagraph("PowerBooks Inc ● Sample Street 42 ● 56789 Cologne ● Germany")
+                .Alignment(ParagraphAlignment.Center).Font(9);
+            section.Footers.Primary.Add(paragraph2);
 
             // Create the text frame for the address.
             _addressFrame = section.AddTextFrame();
@@ -144,87 +144,76 @@ namespace Invoice
             _addressFrame.RelativeVertical = RelativeVertical.Page;
 
             // Show the sender in the address frame.
-            paragraph = _addressFrame.AddParagraph("PowerBooks Inc · Sample Street 42 · 56789 Cologne");
-            paragraph.Format.Font.Size = 7;
-            paragraph.Format.Font.Bold = true;
-            paragraph.Format.SpaceAfter = 3;
+            new MezParagraph(_addressFrame.AddParagraph("PowerBooks Inc · Sample Street 42 · 56789 Cologne"))
+                .Font(7).Bold(true).SpaceAfter(3);
 
             // Add the print date field.
-            paragraph = section.AddParagraph();
-            // We use an empty paragraph to move the first text line below the address field.
-            paragraph.Format.LineSpacing = "5.25cm";
-            paragraph.Format.LineSpacingRule = LineSpacingRule.Exactly;
-            // And now the paragraph with text.
-            paragraph = section.AddParagraph();
-            paragraph.Format.SpaceBefore = 0;
-            paragraph.Style = "Reference";
-            paragraph.AddFormattedText("INVOICE", TextFormat.Bold);
-            paragraph.AddTab();
-            paragraph.AddText("Cologne, ");
-            paragraph.AddDateField("dd.MM.yyyy");
+            _document.AddParagraph()
+            // We use SpaceBefore to move the first text line below the address field.
+                .SpaceBefore("5.25cm")
+                .Style("Reference")
+                .AddFormattedText(new MezFormattedText("INVOICE").Bold(true))
+                .AddTab()
+                .AddText("Cologne, ")
+                .AddDateField("dd.MM.yyyy");
 
             // Create the item table.
-            _table = section.AddTable();
-            _table.Style = "Table";
-            _table.Borders.Color = TableBorder;
-            _table.Borders.Width = 0.25;
-            _table.Borders.Left.Width = 0.5;
-            _table.Borders.Right.Width = 0.5;
-            _table.Rows.LeftIndent = 0;
+            _table = _document.AddTable("1cm;C|2.5cm;R|3cm;R|3.5cm;R|2cm;C|4cm;R")
+                .Style("Table")
+                .BorderColor(TableBorder)
+                .BorderWidth(0.25)
+                .BorderLeft(0.5)
+                .BorderRight(0.5)
+                .LeftIndent(0);
 
-            // Before you can add a row, you must define the columns.
-            var column = _table.AddColumn("1cm");
-            column.Format.Alignment = ParagraphAlignment.Center;
+            //// Before you can add a row, you must define the columns.
+            //var column = _table.AddColumn("1cm");
+            //column.Format.Alignment = ParagraphAlignment.Center;
 
-            column = _table.AddColumn("2.5cm");
-            column.Format.Alignment = ParagraphAlignment.Right;
+            //column = _table.AddColumn("2.5cm");
+            //column.Format.Alignment = ParagraphAlignment.Right;
 
-            column = _table.AddColumn("3cm");
-            column.Format.Alignment = ParagraphAlignment.Right;
+            //column = _table.AddColumn("3cm");
+            //column.Format.Alignment = ParagraphAlignment.Right;
 
-            column = _table.AddColumn("3.5cm");
-            column.Format.Alignment = ParagraphAlignment.Right;
+            //column = _table.AddColumn("3.5cm");
+            //column.Format.Alignment = ParagraphAlignment.Right;
 
-            column = _table.AddColumn("2cm");
-            column.Format.Alignment = ParagraphAlignment.Center;
+            //column = _table.AddColumn("2cm");
+            //column.Format.Alignment = ParagraphAlignment.Center;
 
-            column = _table.AddColumn("4cm");
-            column.Format.Alignment = ParagraphAlignment.Right;
+            //column = _table.AddColumn("4cm");
+            //column.Format.Alignment = ParagraphAlignment.Right;
 
             // Create the header of the table.
-            var row = _table.AddRow();
-            row.HeadingFormat = true;
-            row.Format.Alignment = ParagraphAlignment.Center;
-            row.Format.Font.Bold = true;
-            row.Shading.Color = TableBlue;
-            row.Cells[0].AddParagraph("Item");
-            row.Cells[0].Format.Font.Bold = false;
-            row.Cells[0].Format.Alignment = ParagraphAlignment.Left;
-            row.Cells[0].VerticalAlignment = VerticalAlignment.Bottom;
-            row.Cells[0].MergeDown = 1;
-            row.Cells[1].AddParagraph("Title and Author");
-            row.Cells[1].Format.Alignment = ParagraphAlignment.Left;
-            row.Cells[1].MergeRight = 3;
-            row.Cells[5].AddParagraph("Extended Price");
-            row.Cells[5].Format.Alignment = ParagraphAlignment.Left;
-            row.Cells[5].VerticalAlignment = VerticalAlignment.Bottom;
-            row.Cells[5].MergeDown = 1;
+            var row = _document.AddRow(new MezParagraph("Item").Bold(true).Alignment(ParagraphAlignment.Left),
+                    new MezParagraph("Title and Author").Alignment(ParagraphAlignment.Left),
+                    null, null, null,
+                    new MezParagraph("Extended Price").Alignment(ParagraphAlignment.Left))
+                .Heading(true)
+                .Alignment(ParagraphAlignment.Center)
+                .Bold(true)
+                .ShadingColor(TableBlue);
 
-            row = _table.AddRow();
-            row.HeadingFormat = true;
-            row.Format.Alignment = ParagraphAlignment.Center;
-            row.Format.Font.Bold = true;
-            row.Shading.Color = TableBlue;
-            row.Cells[1].AddParagraph("Quantity");
-            row.Cells[1].Format.Alignment = ParagraphAlignment.Left;
-            row.Cells[2].AddParagraph("Unit Price");
-            row.Cells[2].Format.Alignment = ParagraphAlignment.Left;
-            row.Cells[3].AddParagraph("Discount (%)");
-            row.Cells[3].Format.Alignment = ParagraphAlignment.Left;
-            row.Cells[4].AddParagraph("Taxable");
-            row.Cells[4].Format.Alignment = ParagraphAlignment.Left;
+            // Special settings not yet covered by MEZ.
+            row.Row.Cells[0].VerticalAlignment = VerticalAlignment.Bottom;
+            row.Row.Cells[0].MergeDown = 1;
+            row.Row.Cells[1].MergeRight = 3;
+            row.Row.Cells[5].VerticalAlignment = VerticalAlignment.Bottom;
+            row.Row.Cells[5].MergeDown = 1;
 
-            _table.SetEdge(0, 0, 6, 2, Edge.Box, BorderStyle.Single, 0.75, Color.Empty);
+            row = _document.AddRow(null,
+                    new MezParagraph("Quantity").Alignment(ParagraphAlignment.Left),
+                    new MezParagraph("Unit Price").Alignment(ParagraphAlignment.Left),
+                    new MezParagraph("Discount (%)").Alignment(ParagraphAlignment.Left),
+                    new MezParagraph("Taxable").Alignment(ParagraphAlignment.Left),
+                    null)
+                .Heading(true)
+                .Alignment(ParagraphAlignment.Center)
+                .Bold(true)
+                .ShadingColor(TableBlue);
+
+            _table.Table.SetEdge(0, 0, 6, 2, Edge.Box, BorderStyle.Single, 0.75, Color.Empty);
         }
 
         /// <summary>
@@ -252,8 +241,8 @@ namespace Invoice
                 var discount = GetValueAsDouble(item, "discount");
 
                 // Each item fills two rows.
-                var row1 = this._table.AddRow();
-                var row2 = this._table.AddRow();
+                var row1 = _document.AddRow();
+                var row2 = _document.AddRow();
                 row1.TopPadding = 1.5;
                 row1.Cells[0].Shading.Color = TableGray;
                 row1.Cells[0].VerticalAlignment = VerticalAlignment.Center;
@@ -270,6 +259,7 @@ namespace Invoice
                 paragraph.Add(formattedText);
                 paragraph.AddFormattedText(" by ", TextFormat.Italic);
                 paragraph.AddText(GetValue(item, "author"));
+
                 row2.Cells[1].AddParagraph(GetValue(item, "quantity"));
                 row2.Cells[2].AddParagraph(price.ToString("0.00") + " €");
                 if (discount > 0)
@@ -286,8 +276,8 @@ namespace Invoice
             }
 
             // Add an invisible row as a space line to the table.
-            var row = _table.AddRow();
-            row.Borders.Visible = false;
+            var row = _document.AddRow(null);
+            row.Row.Borders.Visible = false;
 
             // Add the total price row.
             row = _table.AddRow();
