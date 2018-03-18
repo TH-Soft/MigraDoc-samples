@@ -16,6 +16,12 @@ namespace HelloWorld
             // Create a MigraDoc document.
             var document = CreateDocument();
 
+#if DEBUG
+            MigraDoc.DocumentObjectModel.IO.DdlWriter dw = new MigraDoc.DocumentObjectModel.IO.DdlWriter("HelloWorld.mdddl");
+            dw.WriteDocument(document);
+            dw.Close();
+#endif
+
             // ----- Unicode encoding and font program embedding in MigraDoc is demonstrated here. -----
 
             // A flag indicating whether to create a Unicode PDF or a WinAnsi PDF file.
